@@ -6,4 +6,7 @@ public class Node {
     public Node next;
 
     public Node(){}
+
+    public void lock(){}
+    public void unlock(){}
 }
