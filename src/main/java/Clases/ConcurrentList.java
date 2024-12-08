@@ -70,7 +70,4 @@ public class ConcurrentList {
         }
 
     }
-
-    public Object get(int i){return null;}
-
 }
