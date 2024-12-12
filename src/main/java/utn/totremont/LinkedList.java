@@ -1,33 +1,47 @@
 package utn.totremont;
+import utn.totremont.strategy.LockFreeStrategy;
+import utn.totremont.strategy.Strategy;
 
 public class LinkedList
 {
-    enum Strategy
+    /*enum Strategy
     {
         FINE_GRAINED, OPTIMISTIC, LOCK_FREE;
-    }
+    }*/
 
     private final Node HEAD = new Node(Integer.MIN_VALUE,null);
-    private Strategy strategy = Strategy.FINE_GRAINED;
+    private Strategy strategy = null;
     private int size = 0;
 
-    public void setStrategy(Strategy type){this.strategy = type;}
-    public Strategy getStrategy(){return strategy;}
+    public void setStrategy(Strategy type)
+    {
+        if(type == null) throw new RuntimeException();
+        this.strategy = type;
+    }
+    public String getStrategy()
+    {
+        return strategy.name();
+    }
 
     public Node addNode(Object value)
     {
-        throw new UnsupportedOperationException();
+        return strategy.addNode(value,HEAD);
     }
 
-    public Node removeNode(Object value){ throw new UnsupportedOperationException(); }
-
-    public boolean contains(Object value){ throw new UnsupportedOperationException(); }
-
-    public int size(){ return size; }
-
-    public boolean validate()   //Differs with strategy
+    public Node removeNode(Object value)
     {
-        throw new UnsupportedOperationException();
+        return strategy.removeNode(value,HEAD);
+    }
+
+    public boolean contains(Object value)
+    {
+        return strategy.contains(value,HEAD);
+    }
+
+    public boolean validate()   //
+    {
+        if(strategy instanceof LockFreeStrategy) return ((LockFreeStrategy) strategy).validate();
+        else throw new UnsupportedOperationException("Provided strategy can't handle operation");
     }
 
 
