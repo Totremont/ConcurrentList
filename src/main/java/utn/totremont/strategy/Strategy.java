@@ -12,4 +12,6 @@ public interface Strategy
 
     public String name();
 
+    public Node getHEAD();
+
 }

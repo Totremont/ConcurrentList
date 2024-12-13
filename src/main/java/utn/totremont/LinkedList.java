@@ -1,22 +1,20 @@
 package utn.totremont;
+import utn.totremont.strategy.FineGrainedStrategy;
 import utn.totremont.strategy.LockFreeStrategy;
 import utn.totremont.strategy.Strategy;
 
 public class LinkedList
 {
-    /*enum Strategy
-    {
-        FINE_GRAINED, OPTIMISTIC, LOCK_FREE;
-    }*/
 
-    private final Node HEAD = new Node(Integer.MIN_VALUE,null);
-    private Strategy strategy = null;
-    private int size = 0;
+    private Strategy strategy = new FineGrainedStrategy();
+    private Node HEAD = strategy.getHEAD();   //Default
+    //private int size = 0;
 
     public void setStrategy(Strategy type)
     {
         if(type == null) throw new RuntimeException();
         this.strategy = type;
+        this.HEAD = strategy.getHEAD();
     }
     public String getStrategy()
     {

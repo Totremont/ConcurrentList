@@ -2,16 +2,13 @@ package utn.totremont.worker;
 
 import utn.totremont.LinkedList;
 
-import java.time.Duration;
-import java.time.Instant;
-
-public class AddWorker extends Worker
+public class RemoveWorker extends Worker
 {
     private final int MAX = 21;
 
-    public AddWorker(int operations, int id, LinkedList list)
+    public RemoveWorker(int operations, int id, LinkedList list)
     {
-        super(operations, id, list,WorkType.ADD);
+        super(operations, id, list,WorkType.REMOVE);
     }
 
     @Override
@@ -20,7 +17,7 @@ public class AddWorker extends Worker
         for(int i = 0; i < this.operations; i++)
         {
             // Add numbers between 0 to max
-            this.list.addNode((int) (Math.random() * MAX));
+            this.list.removeNode((int) (Math.random() * MAX));
         }
     }
 }
