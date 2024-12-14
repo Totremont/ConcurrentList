@@ -19,7 +19,20 @@ public class OptimisticSynchronizationStrategy implements Strategy{
             try {
                 nodes = findPosition(HEAD, key);
 
-                if(!nodes.hasCurr)
+                nodes.getPred().lock();
+                if (nodes.hasCurr) nodes.getCurr().lock();
+
+                if(!nodes.hasCurr || nodes.getCurr().getKey() > key){
+                    if(validate(nodes.getPred(), nodes.getCurr(), HEAD)){
+                        if(nodes.getCurr().getKey() == key){
+                            return nodes.getCurr(); // Si ya está en la lista, no se agrega y retorna ese elemento
+                        }else{
+                            OptimisticSynchronizationNode node = new OptimisticSynchronizationNode(value, nodes.getCurr());
+                            nodes.getPred().setNext(node);
+                            return node;
+                        }
+                    }
+                }
 
             }finally {
                 assert nodes != null;
