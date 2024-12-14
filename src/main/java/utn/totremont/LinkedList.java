@@ -1,18 +1,15 @@
 package utn.totremont;
 import utn.totremont.strategy.FineGrainedStrategy;
-import utn.totremont.strategy.LockFreeStrategy;
 import utn.totremont.strategy.Strategy;
 
 public class LinkedList
 {
-
     private Strategy strategy = new FineGrainedStrategy();
-    private Node HEAD = strategy.getHEAD();   //Default
-    //private int size = 0;
+    private volatile Node HEAD = strategy.getHEAD();   //Default
 
     public void setStrategy(Strategy type)
     {
-        if(type == null) throw new RuntimeException();
+        if(type == null) throw new RuntimeException("LinkedList: No strategy provided");
         this.strategy = type;
         this.HEAD = strategy.getHEAD();
     }
@@ -36,12 +33,8 @@ public class LinkedList
         return strategy.contains(value,HEAD);
     }
 
-    public boolean validate()   //
+    public Node getHEAD()
     {
-        if(strategy instanceof LockFreeStrategy) return ((LockFreeStrategy) strategy).validate();
-        else throw new UnsupportedOperationException("Provided strategy can't handle operation");
+        return HEAD;
     }
-
-
-
 }

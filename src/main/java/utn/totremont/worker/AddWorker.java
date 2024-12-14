@@ -2,25 +2,25 @@ package utn.totremont.worker;
 
 import utn.totremont.LinkedList;
 
-import java.time.Duration;
-import java.time.Instant;
-
 public class AddWorker extends Worker
 {
-    private final int MAX = 21;
 
-    public AddWorker(int operations, int id, LinkedList list)
+    public AddWorker(int operations, int id, LinkedList list,boolean verbose)
     {
-        super(operations, id, list,WorkType.ADD);
+        super(operations, id, list,WorkType.ADD,verbose);
     }
 
     @Override
     protected void action(StringBuilder result)
     {
+        final int MAX = 21;
         for(int i = 0; i < this.operations; i++)
         {
             // Add numbers between 0 to max
-            this.list.addNode((int) (Math.random() * MAX));
+            int value = (int) (Math.random() * MAX);
+            this.list.addNode(value);
+            if(verbose) result.append("Hice una operación ADD con el valor:").append(value).append("\n");
+
         }
     }
 }

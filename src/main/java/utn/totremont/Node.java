@@ -24,4 +24,8 @@ public class Node
     public Object getValue() {
         return value;
     }
+
+    public void setNext(Node next) {
+        this.next = next;
+    }
 }

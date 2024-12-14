@@ -14,13 +14,15 @@ public abstract class Worker implements Runnable
     protected final LinkedList list;
     protected final WorkType workType;
     protected BiConsumer<Worker,String> supervisor;
+    protected final boolean verbose;
 
-    protected Worker(int operationCount, int id, LinkedList list, WorkType workType)
+    protected Worker(int operationCount, int id, LinkedList list, WorkType workType, boolean verbose)
     {
         this.operations = operationCount;
         this.id = id;
         this.list = list;
         this.workType = workType;
+        this.verbose = verbose;
     }
 
     public void subscribe(BiConsumer<Worker,String> supervisor)
@@ -37,8 +39,8 @@ public abstract class Worker implements Runnable
         Instant beginning = Instant.now();
         StringBuilder result = new StringBuilder();
         this.action(result);
-        long total = Duration.between(Instant.now(),beginning).getSeconds();
-        result.append(String.format("Hice %d operaciones %s en %d segundos", operations,workType.name(),total));
+        double total = Duration.between(beginning, Instant.now()).getNano() / 1e6;
+        result.append(String.format("*Hice %d operaciones %s en %1.3f milisegundos*", operations,workType.name(),total));
         if(supervisor != null) supervisor.accept(this,result.toString());
     }
 

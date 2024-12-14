@@ -1,6 +1,7 @@
 package utn.totremont.strategy;
 
 import utn.totremont.Node;
+import utn.totremont.utils.Pair;
 
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -11,25 +12,23 @@ public class FineGrainedStrategy implements Strategy
     public Node addNode(Object value, Node HEAD)
     {
         int key = value.hashCode();
-        FineGrainedNode pred = (FineGrainedNode) HEAD;
-        FineGrainedNode curr = (FineGrainedNode) pred.getNext();
+        Pair<FineGrainedNode> nodes = null;
         try
         {
-            curr.lock();
-            while(curr.getKey() < key)
+            nodes = findPosition(HEAD,key);
+            if(!nodes.hasCurr || nodes.getCurr().getKey() > key)
             {
-                pred.unlock();
-                pred = curr;
-                curr = (FineGrainedNode) curr.getNext();
-                curr.lock();
+                FineGrainedNode node = new FineGrainedNode(value,nodes.getCurr());
+                nodes.getPred().setNext(node);
+                return node;
             }
-            if(key == curr.getKey()) return curr;
-            else return new FineGrainedNode(value, curr);
+            else return nodes.getCurr();
         }
         finally
         {
-            pred.unlock();
-            if(curr != null) curr.unlock();
+            assert nodes != null;
+            nodes.getPred().unlock();
+            if(nodes.hasCurr) nodes.getCurr().unlock();
         }
     }
 
@@ -37,25 +36,22 @@ public class FineGrainedStrategy implements Strategy
     public Node removeNode(Object value, Node HEAD)
     {
         int key = value.hashCode();
-        FineGrainedNode pred = (FineGrainedNode) HEAD;
-        FineGrainedNode curr = (FineGrainedNode) pred.getNext();
+        Pair<FineGrainedNode> nodes = null;
         try
         {
-            curr.lock();
-            while(curr.getKey() < key)
+            nodes = findPosition(HEAD,key);
+            if(nodes.hasCurr && nodes.getCurr().getKey() == key)
             {
-                pred.unlock();
-                pred = curr;
-                curr = (FineGrainedNode) curr.getNext();
-                curr.lock();
+                nodes.getPred().setNext(nodes.getCurr().getNext());
+                return nodes.getCurr();
             }
-            if(key == curr.getKey()) return curr;
             else return null;
         }
         finally
         {
-            pred.unlock();
-            if(curr != null) curr.unlock();
+            assert nodes != null;
+            nodes.getPred().unlock();
+            if(nodes.hasCurr) nodes.getCurr().unlock();
         }
     }
 
@@ -73,7 +69,30 @@ public class FineGrainedStrategy implements Strategy
     @Override
     public Node getHEAD()
     {
-        return null;
+        return new FineGrainedNode(Integer.MIN_VALUE,null);
+    }
+
+    //Siempre encuentra el predecesor, mientras que el sucesor puede ser mayor, igual o null (no hay sucesor).
+    // IMPORTANTE : Desbloquear los locks en el calling method
+    private Pair<FineGrainedNode> findPosition(Node HEAD, int key)
+    {
+        FineGrainedNode pred = (FineGrainedNode) HEAD;
+        FineGrainedNode curr = null;
+        pred.lock();
+        curr = pred.getNext() != null ? (FineGrainedNode) pred.getNext() : null;
+        if(curr != null)
+        {
+            curr.lock();
+            while (curr.getKey() < key)
+            {
+                pred.unlock();
+                pred = curr;
+                curr = curr.getNext() != null ? (FineGrainedNode) curr.getNext() : null;
+                if (curr != null) curr.lock();
+                else break;
+            }
+        }
+        return new Pair<FineGrainedNode>(pred,curr);
     }
 
     private static class FineGrainedNode extends Node

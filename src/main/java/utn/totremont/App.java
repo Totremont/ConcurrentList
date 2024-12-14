@@ -1,38 +1,63 @@
 package utn.totremont;
 
 
+import utn.totremont.worker.AddWorker;
+import utn.totremont.worker.RemoveWorker;
+
 import java.util.Scanner;
 
-public class State
+public class App
 {
-    private static int threadCount;
-    private static int[] opShare = new int[3];
-    private static int thOpCount;
+    private static int threadCount = 4;
+    private static int[] opShare = {75,25,0};  // ADD,REMOVE
+    private static int thOpCount = 5;
+    private static boolean verbose = true;
     private final Scanner input = new Scanner(System.in);
+    private LinkedList list;
 
     public static void main(String[] args)
     {
-        State game = new State();
-        game.home();
+        App game = new App();
+        try
+        {
+            game.home();
+        }
+        catch (Exception e)
+        {
+            System.out.println("Algo salió mal.\n" + e.getMessage());
+        }
 
     }
 
-    private void home()
-    {
-        while(true)
+    private void home() throws InterruptedException {
+        loop: while(true)
         {
-            StringBuilder text = new StringBuilder("==== TP Programación Concurrente | Inicio ====\n\n");
-            text.append("* Escenario actual *\n");
+            StringBuilder text = new StringBuilder("\n==== TP Programación Concurrente | Inicio ====\n");
+            text.append("\n=== Escenario actual ===\n");
             text.append(String.format("Hilos: %d\n", threadCount));
             text.append(String.format("Operaciones por hilo: %d\n", thOpCount));
             text.append(String.format("Proporción (ADD,REMOVE): (%d,%d)\n", opShare[0], opShare[1]));
+            text.append(String.format("Hilos verbosos: %s\n", verbose ? "SI" : "NO"));
             text.append("\n-----------\n");
             System.out.flush();
             System.out.println(text);
 
-            switch (getUserInput()) {
+            switch (getUserInput())
+            {
                 case 1:
-                    input.close();
+                    list = new LinkedList();
+                    final Supervisor supervisor = new Supervisor(list);
+                    for(int i = 0 ; i < threadCount; i++)
+                    {
+                        if(i < (threadCount * opShare[0] / 100))
+                        {
+                            supervisor.supervise(new AddWorker(thOpCount,i,list,verbose));
+                        }
+                        else supervisor.supervise(new RemoveWorker(thOpCount,i,list,verbose));
+                    }
+                    Thread event = new Thread(supervisor::execute);
+                    event.start();
+                    input.nextLine();
                     break;
                 case 2:
                     changeParameters();
@@ -40,7 +65,7 @@ public class State
                 case 3:
                     input.close();
                     System.exit(0);
-                    break;
+                    break loop;
             }
         }
 
@@ -48,13 +73,14 @@ public class State
 
     private int getUserInput()
     {
-        StringBuilder text = new StringBuilder("¿Qué querés hacer?\n");
+        final StringBuilder text = new StringBuilder("¿Qué querés hacer?\n");
         text.append("[1] - CORRER escenario actual.\n");
         text.append("[2] - MODIFICAR escenario actual.\n");
         text.append("[3] - SALIR.\n");
         System.out.println(text);
         int[] option;
-        do {
+        do
+        {
             System.out.print("\rEscriba el número: ");
             option = getOrParseInput(true,input);
         } while (option == null || option[0]  < 1 || option[0] > 3);
@@ -67,7 +93,8 @@ public class State
         System.out.println("\n==== TP Programación Concurrente | Modificar ====\n");
         int[] option;
 
-        do {
+        do
+        {
             System.out.printf("\rOperaciones por hilo [Actual: %d | Max: 20]: ", thOpCount);
             option = getOrParseInput(true,input);
         } while (option == null || option[0] < 1 || option[0] > 20);
@@ -75,7 +102,8 @@ public class State
 
         System.out.printf("Proporción (ADD,REMOVE) [Actual: (%d,%d)]\n", opShare[0],opShare[1]);
         int[] values;
-        do {
+        do
+        {
             System.out.print("\rEscribir en formato <%,%> (ej: 25,75): ");
             values = getOrParseInput(false,input);
 
@@ -86,11 +114,19 @@ public class State
 
         System.out.printf("Considere que necesita como mínimo %d hilo(s) para poder conseguir la proporción indicada.\n",minThreads);
 
-        do {
+        do
+        {
             System.out.printf("\rHilos [Actual: %d | Max: 15]: ",threadCount);
             option = getOrParseInput(true,input);
-        } while (option == null || option[0] < 1 || option[0] > 25);
-        threadCount = option[0];
+        } while (option == null || option[0] < 1 || option[0] > 15);
+
+        System.out.printf("\r¿Los hilos son verbosos? [Actual: %s]\n",verbose ? "SI" : "NO");
+        do
+        {
+            System.out.print("\rEscribir 1 para SI, 0 para NO: ");
+            option = getOrParseInput(true,input);
+        } while (option == null || option[0] < 0 || option[0] > 1);
+        verbose = option[0] == 1;
 
     }
 

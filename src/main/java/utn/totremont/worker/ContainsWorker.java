@@ -6,9 +6,9 @@ public class ContainsWorker extends Worker
 {
     private final int MAX = 21;
 
-    public ContainsWorker(int operations, int id, LinkedList list)
+    public ContainsWorker(int operations, int id, LinkedList list,boolean verbose)
     {
-        super(operations, id, list,WorkType.ADD);
+        super(operations, id, list,WorkType.ADD,verbose);
     }
 
     @Override
