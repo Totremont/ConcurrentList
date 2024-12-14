@@ -1,10 +1,11 @@
 package utn.totremont;
 import utn.totremont.strategy.FineGrainedStrategy;
+import utn.totremont.strategy.OptimisticSynchronizationStrategy;
 import utn.totremont.strategy.Strategy;
 
 public class LinkedList
 {
-    private Strategy strategy = new FineGrainedStrategy();
+    private Strategy strategy = new OptimisticSynchronizationStrategy();
     private volatile Node HEAD = strategy.getHEAD();   //Default
 
     public void setStrategy(Strategy type)
