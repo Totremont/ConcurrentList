@@ -23,7 +23,7 @@ public class OptimisticSynchronizationStrategy implements Strategy{
                 if (nodes.hasCurr) nodes.getCurr().lock();
 
                 if(!nodes.hasCurr || nodes.getCurr().getKey() > key){
-                    if(validate(nodes.getPred(), nodes.getCurr(), HEAD)){
+                    if(validate(nodes.getPred(), nodes.getCurr(), HEAD)){ // Si no se cumple la validación, se reinicia el bucle
                         if(nodes.getCurr().getKey() == key){
                             return nodes.getCurr(); // Si ya está en la lista, no se agrega y retorna ese elemento
                         }else{
@@ -41,13 +41,40 @@ public class OptimisticSynchronizationStrategy implements Strategy{
             }
         }
 
-
-        return null;
     }
 
     @Override
     public Node removeNode(Object value, Node HEAD) {
-        return null;
+
+        int key = value.hashCode();
+
+        while(true){
+
+            Pair<OptimisticSynchronizationNode> nodes = null;
+
+            try {
+
+                nodes = findPosition(HEAD, key);
+
+                nodes.getPred().lock();
+                if (nodes.hasCurr) nodes.getCurr().lock();
+
+                if(!nodes.hasCurr || nodes.getCurr().getKey() > key){
+                    if(validate(nodes.getPred(), nodes.getCurr(), HEAD)){ // Si no se cumple la validación, se reinicia el bucle
+                        if(nodes.getCurr().getKey() == key){ // Si es el elemento, se elimina y retorna
+                            nodes.getPred().setNext(nodes.getCurr().getNext());
+                            return nodes.getCurr();
+                        }else return null;
+                    }
+                }
+
+            }finally {
+                assert nodes != null;
+                nodes.getPred().unlock();
+                if(nodes.hasCurr) nodes.getCurr().unlock();
+            }
+
+        }
     }
 
     @Override
