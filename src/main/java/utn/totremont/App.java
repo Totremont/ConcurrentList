@@ -119,6 +119,7 @@ public class App
             System.out.printf("\rHilos [Actual: %d | Max: 15]: ",threadCount);
             option = getOrParseInput(true,input);
         } while (option == null || option[0] < 1 || option[0] > 15);
+        threadCount = option[0];
 
         System.out.printf("\r¿Los hilos son verbosos? [Actual: %s]\n",verbose ? "SI" : "NO");
         do
