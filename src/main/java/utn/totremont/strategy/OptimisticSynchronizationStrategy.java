@@ -14,35 +14,47 @@ public class OptimisticSynchronizationStrategy implements Strategy{
 
         while(true){ // La unica forma de salir (agregar nodo) es que se acepte la validacion y se retorne el Node
 
-            Pair<OptimisticSynchronizationNode> nodes = null;
+            OptimisticSynchronizationNode pred = (OptimisticSynchronizationNode) HEAD;
+            OptimisticSynchronizationNode curr = (OptimisticSynchronizationNode) pred.getNext();
 
             try {
-                nodes = findPosition(HEAD, key);
+                if(curr == null){
+                    pred.lock();
+                    if(key > pred.getKey()){
+                        OptimisticSynchronizationNode node = new OptimisticSynchronizationNode(value, null);
+                        pred.setNext(node);
+                        return node;
+                    }else return null;
+                }else{
+                    while(curr.getKey() <= key){
+                        pred = curr;
+                        curr = (OptimisticSynchronizationNode) curr.getNext();
+                        if (curr == null) break;
+                    }
 
-                nodes.getPred().lock();
-                if (nodes.hasCurr) nodes.getCurr().lock();
+                    pred.lock();
+                    if (curr != null) curr.lock();
 
-                if(!nodes.hasCurr){
-                    // pred es el nodo final
-                    OptimisticSynchronizationNode node = new OptimisticSynchronizationNode(value, null);
-                    nodes.getPred().setNext(node);
-                    return node;
-                }else if(nodes.getCurr().getKey() > key){
-                    if(validate(nodes.getPred(), nodes.getCurr(), HEAD)){ // Si no se cumple la validación, se reinicia el bucle
-                        if(nodes.getCurr().getKey() == key){
-                            return nodes.getCurr(); // Si ya está en la lista, no se agrega y retorna ese elemento
+                    if(curr == null){
+                        OptimisticSynchronizationNode node = new OptimisticSynchronizationNode(value, null);
+                        pred.setNext(node);
+                        return node;
+                    }
+
+                    if(validate(pred, curr, HEAD)){
+                        if(curr.getKey() == key){
+                            return curr;
                         }else{
-                            OptimisticSynchronizationNode node = new OptimisticSynchronizationNode(value, nodes.getCurr());
-                            nodes.getPred().setNext(node);
+                            OptimisticSynchronizationNode node = new OptimisticSynchronizationNode(value, curr);
+                            pred.setNext(node);
                             return node;
                         }
                     }
-                }
 
+                }
             }finally {
-                assert nodes != null;
-                nodes.getPred().unlock();
-                if(nodes.hasCurr) nodes.getCurr().unlock();
+                pred.unlock();
+                if(curr != null) curr.unlock();
             }
         }
 
@@ -53,32 +65,34 @@ public class OptimisticSynchronizationStrategy implements Strategy{
 
         int key = value.hashCode();
 
-        while(true){
+        while(true){ // La unica forma de salir (agregar nodo) es que se acepte la validacion y se retorne el Node
 
-            Pair<OptimisticSynchronizationNode> nodes = null;
+            OptimisticSynchronizationNode pred = (OptimisticSynchronizationNode) HEAD;
+            OptimisticSynchronizationNode curr = (OptimisticSynchronizationNode) pred.getNext();
 
             try {
 
-                nodes = findPosition(HEAD, key);
+                if(curr == null) return null;
 
-                nodes.getPred().lock();
-                if (nodes.hasCurr) nodes.getCurr().lock();
+                while(curr.getKey() < key){
+                    pred = curr;
+                    curr = (OptimisticSynchronizationNode) curr.getNext();
+                }
 
-                if(nodes.getCurr().getKey() > key){
-                    if(validate(nodes.getPred(), nodes.getCurr(), HEAD)){ // Si no se cumple la validación, se reinicia el bucle
-                        if(nodes.getCurr().getKey() == key){ // Si es el elemento, se elimina y retorna
-                            nodes.getPred().setNext(nodes.getCurr().getNext());
-                            return nodes.getCurr();
-                        }else return null;
-                    }
+                pred.lock();
+                if(curr != null) curr.lock();
+
+                if(validate(pred, curr, HEAD)){
+                    if(curr.getKey() == key){
+                        pred.setNext(curr.getNext());
+                        return curr;
+                    }else return null;
                 }
 
             }finally {
-                assert nodes != null;
-                nodes.getPred().unlock();
-                if(nodes.hasCurr) nodes.getCurr().unlock();
+                pred.unlock();
+                if(curr != null) curr.unlock();
             }
-
         }
     }
 
@@ -97,7 +111,7 @@ public class OptimisticSynchronizationStrategy implements Strategy{
         return new OptimisticSynchronizationNode(Integer.MIN_VALUE, null);
     }
 
-    private Pair<OptimisticSynchronizationNode> findPosition(Node HEAD, int key){
+    /*private Pair<OptimisticSynchronizationNode> findPosition(Node HEAD, int key){
 
         OptimisticSynchronizationNode pred = (OptimisticSynchronizationNode) HEAD;
         OptimisticSynchronizationNode curr = null;
@@ -112,7 +126,7 @@ public class OptimisticSynchronizationStrategy implements Strategy{
             }
         }
         return new Pair<OptimisticSynchronizationNode>(pred,curr);
-    }
+    }*/
 
     // Objetivo: ver que predv.next = currv
     public Boolean validate(Node predv, Node currv, Node HEAD){
