@@ -22,7 +22,12 @@ public class OptimisticSynchronizationStrategy implements Strategy{
                 nodes.getPred().lock();
                 if (nodes.hasCurr) nodes.getCurr().lock();
 
-                if(!nodes.hasCurr || nodes.getCurr().getKey() > key){
+                if(!nodes.hasCurr){
+                    // pred es el nodo final
+                    OptimisticSynchronizationNode node = new OptimisticSynchronizationNode(value, null);
+                    nodes.getPred().setNext(node);
+                    return node;
+                }else if(nodes.getCurr().getKey() > key){
                     if(validate(nodes.getPred(), nodes.getCurr(), HEAD)){ // Si no se cumple la validación, se reinicia el bucle
                         if(nodes.getCurr().getKey() == key){
                             return nodes.getCurr(); // Si ya está en la lista, no se agrega y retorna ese elemento
@@ -59,7 +64,7 @@ public class OptimisticSynchronizationStrategy implements Strategy{
                 nodes.getPred().lock();
                 if (nodes.hasCurr) nodes.getCurr().lock();
 
-                if(!nodes.hasCurr || nodes.getCurr().getKey() > key){
+                if(nodes.getCurr().getKey() > key){
                     if(validate(nodes.getPred(), nodes.getCurr(), HEAD)){ // Si no se cumple la validación, se reinicia el bucle
                         if(nodes.getCurr().getKey() == key){ // Si es el elemento, se elimina y retorna
                             nodes.getPred().setNext(nodes.getCurr().getNext());
