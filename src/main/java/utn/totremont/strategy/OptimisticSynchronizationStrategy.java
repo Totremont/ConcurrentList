@@ -18,43 +18,27 @@ public class OptimisticSynchronizationStrategy implements Strategy{
             OptimisticSynchronizationNode curr = (OptimisticSynchronizationNode) pred.getNext();
 
             try {
-                if(curr == null){
-                    pred.lock();
-                    if(key > pred.getKey()){
-                        OptimisticSynchronizationNode node = new OptimisticSynchronizationNode(value, null);
-                        pred.setNext(node);
-                        return node;
-                    }else return null;
-                }else{
-                    while(curr.getKey() <= key){
-                        pred = curr;
-                        curr = (OptimisticSynchronizationNode) curr.getNext();
-                        if (curr == null) break;
-                    }
 
-                    pred.lock();
-                    if (curr != null) curr.lock();
-
-                    if(curr == null){
-                        OptimisticSynchronizationNode node = new OptimisticSynchronizationNode(value, null);
-                        pred.setNext(node);
-                        return node;
-                    }
-
-                    if(validate(pred, curr, HEAD)){
-                        if(curr.getKey() == key){
-                            return curr;
-                        }else{
-                            OptimisticSynchronizationNode node = new OptimisticSynchronizationNode(value, curr);
-                            pred.setNext(node);
-                            return node;
-                        }
-                    }
-
+                while(curr.getKey() < key){
+                    pred = curr;
+                    curr = (OptimisticSynchronizationNode) curr.getNext();
                 }
+
+                pred.lock();
+                curr.lock();
+
+                if(validate(pred, curr, HEAD)){
+                    if(curr.getKey() == key) return null;
+                    else {
+                        OptimisticSynchronizationNode node = new OptimisticSynchronizationNode(value, curr);
+                        pred.setNext(node);
+                        return node;
+                    }
+                }
+
             }finally {
                 pred.unlock();
-                if(curr != null) curr.unlock();
+                curr.unlock();
             }
         }
 
@@ -72,26 +56,25 @@ public class OptimisticSynchronizationStrategy implements Strategy{
 
             try {
 
-                if(curr == null) return null;
-
                 while(curr.getKey() < key){
                     pred = curr;
                     curr = (OptimisticSynchronizationNode) curr.getNext();
                 }
 
                 pred.lock();
-                if(curr != null) curr.lock();
+                curr.lock();
 
                 if(validate(pred, curr, HEAD)){
-                    if(curr.getKey() == key){
+                    if(curr.getKey() != key) return null;
+                    else {
                         pred.setNext(curr.getNext());
                         return curr;
-                    }else return null;
+                    }
                 }
 
             }finally {
                 pred.unlock();
-                if(curr != null) curr.unlock();
+                curr.unlock();
             }
         }
     }
@@ -108,7 +91,7 @@ public class OptimisticSynchronizationStrategy implements Strategy{
 
     @Override
     public Node getHEAD() {
-        return new OptimisticSynchronizationNode(Integer.MIN_VALUE, null);
+        return new OptimisticSynchronizationNode(Integer.MIN_VALUE, new OptimisticSynchronizationNode(Integer.MAX_VALUE, null));
     }
 
     /*private Pair<OptimisticSynchronizationNode> findPosition(Node HEAD, int key){
@@ -137,8 +120,6 @@ public class OptimisticSynchronizationStrategy implements Strategy{
             if(node == predv) return node.getNext() == currv;
 
             node = (OptimisticSynchronizationNode) node.getNext();
-
-            if(node == null) break;
         }
 
         return false;

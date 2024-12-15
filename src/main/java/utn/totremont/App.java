@@ -9,7 +9,7 @@ import java.util.Scanner;
 public class App
 {
     private static int threadCount = 4;
-    private static int[] opShare = {100,0,0};  // ADD,REMOVE
+    private static int[] opShare = {75,25,0};  // ADD,REMOVE
     private static int thOpCount = 5;
     private static boolean verbose = true;
     private final Scanner input = new Scanner(System.in);
