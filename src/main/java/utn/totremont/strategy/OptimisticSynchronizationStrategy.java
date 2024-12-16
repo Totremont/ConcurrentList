@@ -12,72 +12,74 @@ public class OptimisticSynchronizationStrategy implements Strategy{
 
         int key = value.hashCode();
 
-        while(true){ // La unica forma de salir (agregar nodo) es que se acepte la validacion y se retorne el Node
+        while (true) { // La única forma de salir (agregar nodo) es que se acepte la validación y se retorne el Node
 
             OptimisticSynchronizationNode pred = (OptimisticSynchronizationNode) HEAD;
             OptimisticSynchronizationNode curr = (OptimisticSynchronizationNode) pred.getNext();
 
             try {
-
-                while(curr.getKey() < key){
+                // Navegar por la lista hasta encontrar la posición donde insertar el nodo
+                while (curr != null && curr.getKey() < key) {
                     pred = curr;
                     curr = (OptimisticSynchronizationNode) curr.getNext();
                 }
 
                 pred.lock();
-                curr.lock();
+                if (curr != null) curr.lock();
 
-                if(validate(pred, curr, HEAD)){
-                    if(curr.getKey() == key) return null;
+                if (validate(pred, curr, HEAD)) {
+                    // Verificar si el nodo ya existe en la posición correcta
+                    if (curr != null && curr.getKey() == key) return null;
                     else {
+                        // Crear un nuevo nodo y enlazarlo
                         OptimisticSynchronizationNode node = new OptimisticSynchronizationNode(value, curr);
                         pred.setNext(node);
                         return node;
                     }
                 }
-
-            }finally {
+            } finally {
                 pred.unlock();
-                curr.unlock();
+                if (curr != null) curr.unlock();
             }
         }
-
     }
+
 
     @Override
     public Node removeNode(Object value, Node HEAD) {
 
         int key = value.hashCode();
 
-        while(true){ // La unica forma de salir (agregar nodo) es que se acepte la validacion y se retorne el Node
+        while (true) { // La única forma de salir (eliminar nodo) es que se acepte la validación y se retorne el Node
 
             OptimisticSynchronizationNode pred = (OptimisticSynchronizationNode) HEAD;
             OptimisticSynchronizationNode curr = (OptimisticSynchronizationNode) pred.getNext();
 
             try {
-
-                while(curr.getKey() < key){
+                // Navegar por la lista hasta encontrar la posición del nodo a eliminar
+                while (curr != null && curr.getKey() < key) {
                     pred = curr;
                     curr = (OptimisticSynchronizationNode) curr.getNext();
                 }
 
                 pred.lock();
-                curr.lock();
+                if (curr != null) curr.lock();
 
-                if(validate(pred, curr, HEAD)){
-                    if(curr.getKey() != key) return null;
-                    else {
-                        pred.setNext(curr.getNext());
-                        return curr;
-                    }
+                if (validate(pred, curr, HEAD)) {
+                    // Si el nodo no existe, retornar null
+                    if (curr == null || curr.getKey() != key) return null;
+
+                    // Actualizar la referencia del nodo previo para saltar al siguiente nodo
+                    pred.setNext(curr.getNext());
+                    return curr; // Retornar el nodo eliminado
                 }
-
-            }finally {
+            } finally {
                 pred.unlock();
-                curr.unlock();
+                if (curr != null) curr.unlock();
             }
         }
     }
+
 
     @Override
     public Boolean contains(Object value, Node HEAD) {
@@ -91,7 +93,7 @@ public class OptimisticSynchronizationStrategy implements Strategy{
 
     @Override
     public Node getHEAD() {
-        return new OptimisticSynchronizationNode(Integer.MIN_VALUE, new OptimisticSynchronizationNode(Integer.MAX_VALUE, null));
+        return new OptimisticSynchronizationNode(Integer.MIN_VALUE, null);
     }
 
     /*private Pair<OptimisticSynchronizationNode> findPosition(Node HEAD, int key){
