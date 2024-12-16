@@ -1,9 +1,13 @@
 package utn.totremont;
 
 
+import utn.totremont.strategy.FineGrainedStrategy;
+import utn.totremont.strategy.OptimisticSynchronizationStrategy;
 import utn.totremont.worker.AddWorker;
 import utn.totremont.worker.RemoveWorker;
+import utn.totremont.strategy.Strategy;
 
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class App
@@ -11,16 +15,17 @@ public class App
     private static int threadCount = 4;
     private static int[] opShare = {75,25,0};  // ADD,REMOVE
     private static int thOpCount = 5;
-    private static boolean verbose = true;
+    private static boolean verbose = false;
+    private final static LinkedList list = new LinkedList();
+    private final static ArrayList<Strategy> strategies = new ArrayList<>();
+    private final static Supervisor supervisor = new Supervisor(list);
     private final Scanner input = new Scanner(System.in);
-    private LinkedList list;
 
     public static void main(String[] args)
     {
-        App game = new App();
         try
         {
-            game.home();
+            new App().home();
         }
         catch (Exception e)
         {
@@ -29,15 +34,31 @@ public class App
 
     }
 
-    private void home() throws InterruptedException {
+    public App()
+    {
+        strategies.add(new FineGrainedStrategy());
+        strategies.add(new OptimisticSynchronizationStrategy());
+    }
+
+    private void home() throws InterruptedException
+    {
+        final StringBuilder text = new StringBuilder();
         loop: while(true)
         {
-            StringBuilder text = new StringBuilder("\n==== TP Programación Concurrente | Inicio ====\n");
+            text.setLength(0);
+            text.append("\n==== TP Programación Concurrente ====\n");
             text.append("\n=== Escenario actual ===\n");
             text.append(String.format("Hilos: %d\n", threadCount));
             text.append(String.format("Operaciones por hilo: %d\n", thOpCount));
-            text.append(String.format("Proporción (ADD,REMOVE): (%d,%d)\n", opShare[0], opShare[1]));
-            text.append(String.format("Hilos verbosos: %s\n", verbose ? "SI" : "NO"));
+            text.append(String.format("Proporción de hilos (ADD,REMOVE): (%d,%d)\n", opShare[0], opShare[1]));
+            text.append(String.format("¿Hilos verbosos?: %s\n", verbose ? "SI" : "NO"));
+            text.append("Estrategias: ");
+            for(Strategy strategy : strategies) text.append(strategy.name()).append(", ");
+            if(!strategies.isEmpty())
+            {
+                int size = text.length();
+                text.delete(size - 2,size); //delete last ", ".
+            }
             text.append("\n-----------\n");
             System.out.flush();
             System.out.println(text);
@@ -45,8 +66,7 @@ public class App
             switch (getUserInput())
             {
                 case 1:
-                    list = new LinkedList();
-                    final Supervisor supervisor = new Supervisor(list);
+                    supervisor.clear();
                     for(int i = 0 ; i < threadCount; i++)
                     {
                         if(i < (threadCount * opShare[0] / 100))
@@ -55,6 +75,7 @@ public class App
                         }
                         else supervisor.supervise(new RemoveWorker(thOpCount,i,list,verbose));
                     }
+                    supervisor.setStrategies(strategies);
                     Thread event = new Thread(supervisor::execute);
                     event.start();
                     input.nextLine();
@@ -68,7 +89,6 @@ public class App
                     break loop;
             }
         }
-
     }
 
     private int getUserInput()

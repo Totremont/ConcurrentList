@@ -34,8 +34,13 @@ public class LinkedList
         return strategy.contains(value,HEAD);
     }
 
-    public Node getHEAD()
+    public Node getFirst()
     {
-        return HEAD;
+        return HEAD.getNext();
+    }
+
+    public void clear()
+    {
+        HEAD = strategy.getHEAD();
     }
 }

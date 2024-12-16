@@ -49,14 +49,15 @@ public class OptimisticSynchronizationStrategy implements Strategy{
 
         int key = value.hashCode();
 
-        while(true){ // La unica forma de salir (agregar nodo) es que se acepte la validacion y se retorne el Node
+        while(true) { // La unica forma de salir (agregar nodo) es que se acepte la validacion y se retorne el Node
 
             OptimisticSynchronizationNode pred = (OptimisticSynchronizationNode) HEAD;
             OptimisticSynchronizationNode curr = (OptimisticSynchronizationNode) pred.getNext();
 
             try {
 
-                while(curr.getKey() < key){
+                while(curr.getKey() < key)
+                {
                     pred = curr;
                     curr = (OptimisticSynchronizationNode) curr.getNext();
                 }
@@ -73,6 +74,7 @@ public class OptimisticSynchronizationStrategy implements Strategy{
                 }
 
             }finally {
+
                 pred.unlock();
                 curr.unlock();
             }
@@ -86,7 +88,7 @@ public class OptimisticSynchronizationStrategy implements Strategy{
 
     @Override
     public String name() {
-        return "";
+        return "Optimist strategy";
     }
 
     @Override
