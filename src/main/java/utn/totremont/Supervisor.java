@@ -3,6 +3,8 @@ package utn.totremont;
 import utn.totremont.strategy.Strategy;
 import utn.totremont.worker.Worker;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -12,7 +14,7 @@ import java.util.List;
 // Receives results from threads
 public class Supervisor
 {
-    private final HashSet<Worker> workers = new HashSet<>();
+    private final ArrayList<Worker> workers = new ArrayList<>();
     private final ArrayList<Strategy> strategies = new ArrayList<>();
     //Strategy being executed now
     private int strategyIndex = 0;
@@ -107,6 +109,7 @@ public class Supervisor
                 }
                 System.out.println(results);
                 System.out.print("Presionar tecla para continuar.");
+                outputCSV(strategies.get(0),times.get(0));
                 notifyAll();    //Wakes App() up
             }
             else //Another strategy needs to be executed
@@ -118,6 +121,31 @@ public class Supervisor
 
 
         }
+    }
+
+    private synchronized void outputCSV(Strategy strategy, double time)
+    {
+        FileWriter writer;
+        try
+        {
+            writer = new FileWriter("cl-results.csv");
+            writer.write("Estrategia");
+            for(int i = 0; i < this.workers.size(); i++)
+            {
+                writer.write(String.format(",Hilo-%d-%s",i,this.workers.get(i).getWorkType().name()));
+            }
+            writer.write(",Supervisor\n\r" + strategy.name());
+            this.workers.forEach(it -> {
+                try {
+                    writer.write("," + it.getLastRunTime());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            writer.write("," + time);
+            writer.close();
+            System.out.println("Output file created");
+        } catch(IOException e){}
     }
 
 }

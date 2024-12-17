@@ -15,6 +15,7 @@ public abstract class Worker implements Runnable
     protected final WorkType workType;
     protected BiConsumer<Worker,String> supervisor;
     protected final boolean verbose;
+    protected double lastRunTime = 0d;
 
     protected Worker(int operationCount, int id, LinkedList list, WorkType workType, boolean verbose)
     {
@@ -30,6 +31,12 @@ public abstract class Worker implements Runnable
         this.supervisor = supervisor;
     }
 
+    public double getLastRunTime(){ return this.lastRunTime;}
+
+    public WorkType getWorkType() {
+        return workType;
+    }
+
     // What the worker actually do. It receives an StringBuilder to append additional info (optional).
     protected abstract void action(StringBuilder result);
 
@@ -39,12 +46,12 @@ public abstract class Worker implements Runnable
         Instant beginning = Instant.now();
         StringBuilder result = new StringBuilder();
         this.action(result);
-        double total = Duration.between(beginning, Instant.now()).getNano() / 1e6;
-        result.append(String.format("*Hice %d operaciones %s en %1.3f milisegundos*", operations,workType.name(),total));
+        lastRunTime = Duration.between(beginning, Instant.now()).getNano() / 1e6;
+        result.append(String.format("*Hice %d operaciones %s en %1.3f milisegundos*", operations,workType.name(),lastRunTime));
         if(supervisor != null) supervisor.accept(this,result.toString());
     }
 
-    protected enum WorkType
+    public enum WorkType
     {
         ADD,REMOVE
     }

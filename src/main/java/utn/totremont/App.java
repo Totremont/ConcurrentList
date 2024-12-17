@@ -2,6 +2,7 @@ package utn.totremont;
 
 
 import utn.totremont.strategy.FineGrainedStrategy;
+import utn.totremont.strategy.NonBlockingStrategy;
 import utn.totremont.strategy.OptimisticSynchronizationStrategy;
 import utn.totremont.worker.AddWorker;
 import utn.totremont.worker.RemoveWorker;
@@ -38,6 +39,7 @@ public class App
     {
         strategies.add(new FineGrainedStrategy());
         strategies.add(new OptimisticSynchronizationStrategy());
+        strategies.add(new NonBlockingStrategy());
     }
 
     private void home() throws InterruptedException
