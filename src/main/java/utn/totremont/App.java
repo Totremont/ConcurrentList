@@ -76,8 +76,8 @@ public class App
                         else supervisor.supervise(new RemoveWorker(thOpCount,i,list,verbose));
                     }
                     supervisor.setStrategies(strategies);
-                    Thread event = new Thread(supervisor::execute);
-                    event.start();
+                    supervisor.execute();
+                    // Will block and wait until execute has finished to request an input.
                     input.nextLine();
                     break;
                 case 2:

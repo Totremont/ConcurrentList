@@ -49,8 +49,7 @@ public class Supervisor
 
     // Execute scene
     //Synchronized Evita race conditions con onReceive al modificar el hashset.
-    public synchronized void execute()
-    {
+    public synchronized void execute(){
         results.append("\n\n==== Ejecución del escenario ====\n");
         if(workers.isEmpty() || strategies.isEmpty())
         {
@@ -59,6 +58,14 @@ public class Supervisor
             System.exit(0);
         }
         forward();
+        //Blocks calling object (App) until execution ends
+        try
+        {
+            wait();
+        } catch(Exception e)
+        {
+            System.out.println("Warning: thread calling execute() couldn't be blocked.");
+        }
     }
 
     private synchronized void forward()
@@ -76,12 +83,22 @@ public class Supervisor
     {
         results.append(String.format("\n[Hilo %d dice]\n",worker.getId())).append(result);
         workersFinish++;
-        times.add(strategyIndex, Duration.between(lastRun,Instant.now()).getNano() / 1e6);
         if(workersFinish == workers.size())  // Execution ended
         {
+            times.add(strategyIndex, Duration.between(lastRun,Instant.now()).getNano() / 1e6);
+            results.append("\n\n=== Todos los hilos han terminado. ===\n");
+            results.append("Estado de la lista:\n");
+            Node node = this.list.getFirst();
+            int index = 0;
+            if(node == null) results.append("Vacía.\n");
+            else do
+            {
+                index++;
+                results.append(String.format("[Elemento: %d | Valor: %d]\n", index, node.getKey()));
+            } while((node = node.getNext()) != null);
             if((strategyIndex + 1) == strategies.size())
             {
-                results.append("\n\n=== La ejecución ha concluído. ===\n");
+                results.append("\n=== La ejecución ha concluído. ===\n");
                 results.append("Resumen:\n");
                 for (int i = 0; i < strategies.size(); i++) {
                     results.append("Estrategia: ")
@@ -89,24 +106,16 @@ public class Supervisor
                             .append(" --> ").append(String.format("%1.3f milisegundos\n", times.get(i)));
                 }
                 System.out.println(results);
-                System.out.println("\nPresionar tecla para continuar.");
+                System.out.print("Presionar tecla para continuar.");
+                notifyAll();    //Wakes App() up
             }
-            else
+            else //Another strategy needs to be executed
             {
-                results.append("\n\n=== Todos los hilos han terminado. ===\n");
-                results.append("Estado de la lista:\n");
-                Node node = this.list.getFirst();
-                int index = 0;
-                if(node == null) results.append("Vacía.\n");
-                else do
-                {
-                    index++;
-                    results.append(String.format("[Elemento: %d | Valor: %d]\n", index, node.getKey()));
-                } while((node = node.getNext()) != null);
                 strategyIndex++;
                 workersFinish = 0;
                 forward();
             }
+
 
         }
     }
