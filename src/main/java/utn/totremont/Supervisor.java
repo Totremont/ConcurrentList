@@ -3,12 +3,12 @@ package utn.totremont;
 import utn.totremont.strategy.Strategy;
 import utn.totremont.worker.Worker;
 
+import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 // Receives results from threads
@@ -16,13 +16,18 @@ public class Supervisor
 {
     private final ArrayList<Worker> workers = new ArrayList<>();
     private final ArrayList<Strategy> strategies = new ArrayList<>();
-    //Strategy being executed now
-    private int strategyIndex = 0;
-    private Instant lastRun;
-    private int workersFinish = 0;
     private final ArrayList<Double> times = new ArrayList();
     private final StringBuilder results = new StringBuilder();
     private final LinkedList list;
+
+    //Strategy being executed now
+    private int strategyIndex = 0;
+    //strategies * runs per strategy = total
+    private int runIndex = 0;
+    private int runsPerStrategy = 0;
+    private int totalRuns = 0;
+    private Instant lastRunTime;
+    private int workersFinish = 0;
 
     public Supervisor(LinkedList list)
     {
@@ -40,23 +45,27 @@ public class Supervisor
         strategies.clear();
         times.clear();
         strategyIndex = 0;
+        runsPerStrategy = 1;
+        runIndex = 0;
         workersFinish = 0;
     }
 
-    public void setStrategies(List<Strategy> strategies)
+    public void setStrategies(List<Strategy> strategies, int runsPerStrategy)
     {
+        this.strategies.clear();
         this.strategies.addAll(strategies);
+        this.runsPerStrategy = runsPerStrategy;
+        totalRuns = runsPerStrategy * strategies.size();
     }
-
 
     // Execute scene
     //Synchronized Evita race conditions con onReceive al modificar el hashset.
-    public synchronized void execute(){
+    public synchronized void execute()
+    {
         results.append("\n\n==== Ejecución del escenario ====\n");
-        if(workers.isEmpty() || strategies.isEmpty())
+        if(workers.isEmpty() || strategies.isEmpty() || runsPerStrategy <= 0)
         {
-            results.append("\n=== No hay hilos o estrategias por ejecutar. Adiós. ===");
-            System.out.println(results);
+            results.append("\n=== No hay nada para ejecutar. Adiós. ===\n");
             System.exit(0);
         }
         forward();
@@ -64,18 +73,30 @@ public class Supervisor
         try
         {
             wait();
-        } catch(Exception e)
+        }
+        catch(Exception e)
         {
             System.out.println("Warning: thread calling execute() couldn't be blocked.");
         }
     }
 
-    private synchronized void forward()
+    private synchronized void forward() //Continue with next run
     {
-        Strategy strategy = this.strategies.get(strategyIndex);
-        this.list.setStrategy(strategies.get(strategyIndex));
-        lastRun = Instant.now();
-        results.append(String.format("\n=== Ejecutando estrategia: %s en lista nueva. ===\n",strategy.name()));
+        workersFinish = 0;
+        int aux = runIndex / runsPerStrategy;
+        Strategy strategy = this.strategies.get(aux);
+        if(aux == strategyIndex)
+        {
+            this.list.clear(); //Still on same strategy
+        }
+        else
+        {
+            strategyIndex = aux;
+            this.list.setStrategy(strategy);
+        }
+        lastRunTime = Instant.now();
+        results.append(String.format("\n=== Ejecutando %s en lista nueva. ===\n",strategy.name()));
+        results.append(String.format("Corrida: %d/%d\n",(runIndex % runsPerStrategy)+1,runsPerStrategy));
         results.append(String.format("Creando %d hilo(s)\n",workers.size()));
         workers.forEach(it -> new Thread(it).start());
     }
@@ -87,9 +108,9 @@ public class Supervisor
         workersFinish++;
         if(workersFinish == workers.size())  // Execution ended
         {
-            times.add(strategyIndex, Duration.between(lastRun,Instant.now()).getNano() / 1e6);
-            results.append("\n\n=== Todos los hilos han terminado. ===\n");
-            results.append("Estado de la lista:\n");
+            times.add(Duration.between(lastRunTime,Instant.now()).getNano() / 1e6);
+            results.append("\n\n=== Todos los hilos han terminado. ===");
+            results.append("\nEstado de la lista:\n");
             Node node = this.list.getFirst();
             int index = 0;
             if(node == null) results.append("Vacía.\n");
@@ -98,54 +119,66 @@ public class Supervisor
                 index++;
                 results.append(String.format("[Elemento: %d | Valor: %d]\n", index, node.getKey()));
             } while((node = node.getNext()) != null);
-            if((strategyIndex + 1) == strategies.size())
+
+            if(runIndex < (this.totalRuns - 1))
+            {
+                runIndex++;
+                forward();
+            }
+            else    //Execution ended; Show overview
             {
                 results.append("\n=== La ejecución ha concluído. ===\n");
                 results.append("Resumen:\n");
-                for (int i = 0; i < strategies.size(); i++) {
-                    results.append("Estrategia: ")
-                            .append(strategies.get(i).name())
-                            .append(" --> ").append(String.format("%1.3f milisegundos\n", times.get(i)));
+                for (int i = 0; i < this.totalRuns; i++)
+                {
+                    results.append
+                    (
+                            String.format("Estrategia: %s (%d/%d) --> %1.3f milisegundos\n"
+                                    ,strategies.get(i / runsPerStrategy).name(),
+                                    (i % runsPerStrategy)+1, runsPerStrategy,times.get(i))
+                    );
                 }
                 System.out.println(results);
                 System.out.print("Presionar tecla para continuar.");
-                outputCSV(strategies.get(0),times.get(0));
+                //outputCSV(strategies.get(0),times.get(0));
                 notifyAll();    //Wakes App() up
-            }
-            else //Another strategy needs to be executed
-            {
-                strategyIndex++;
-                workersFinish = 0;
-                forward();
             }
 
 
         }
     }
 
-    private synchronized void outputCSV(Strategy strategy, double time)
+    //Syncronized garantiza que no se comience con la siguiente ejecución antes de escribir el archivo.
+    private synchronized void outputCSV(boolean headerOnly)
     {
-        FileWriter writer;
-        try
+        try(var rawWriter = new FileWriter("cl-results.csv");
+            BufferedWriter writer = new BufferedWriter(rawWriter))
         {
-            writer = new FileWriter("cl-results.csv");
-            writer.write("Estrategia");
-            for(int i = 0; i < this.workers.size(); i++)
+            Strategy strategy = this.strategies.get(this.strategyIndex);
+            if(headerOnly)
             {
-                writer.write(String.format(",Hilo-%d-%s",i,this.workers.get(i).getWorkType().name()));
-            }
-            writer.write(",Supervisor\n\r" + strategy.name());
-            this.workers.forEach(it -> {
-                try {
-                    writer.write("," + it.getLastRunTime());
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+                writer.write("Estrategia");
+                for (int i = 0; i < this.workers.size(); i++) {
+                    writer.write(String.format(",Hilo-%d-%s", i, this.workers.get(i).getWorkType().name()));
                 }
-            });
-            writer.write("," + time);
-            writer.close();
-            System.out.println("Output file created");
-        } catch(IOException e){}
+                writer.write(",Supervisor\n\r");
+            }
+            else
+            {
+                writer.write(strategy.name());
+                this.workers.forEach(it -> {
+                    try {
+                        writer.write("," + it.getLastRunTime());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
+
+        } catch(IOException e)
+        {
+            //System.out.println("")
+        }
     }
 
 }
