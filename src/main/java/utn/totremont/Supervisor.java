@@ -68,6 +68,7 @@ public class Supervisor
             results.append("\n=== No hay nada para ejecutar. Adiós. ===\n");
             System.exit(0);
         }
+        //this.workers.forEach(Worker::cleanup);
         forward();
         //Blocks calling object (App) until execution ends
         try
@@ -138,9 +139,8 @@ public class Supervisor
                                     (i % runsPerStrategy)+1, runsPerStrategy,times.get(i))
                     );
                 }
+                results.append(outputCSV()).append("\nPresionar tecla para continuar.");
                 System.out.println(results);
-                System.out.print("Presionar tecla para continuar.");
-                //outputCSV(strategies.get(0),times.get(0));
                 notifyAll();    //Wakes App() up
             }
 
@@ -149,35 +149,45 @@ public class Supervisor
     }
 
     //Syncronized garantiza que no se comience con la siguiente ejecución antes de escribir el archivo.
-    private synchronized void outputCSV(boolean headerOnly)
+    private String outputCSV()
     {
         try(var rawWriter = new FileWriter("cl-results.csv");
             BufferedWriter writer = new BufferedWriter(rawWriter))
         {
-            Strategy strategy = this.strategies.get(this.strategyIndex);
-            if(headerOnly)
+            //HEADER
+            writer.write("Estrategia");
+            writer.write(",Corrida");
+            for (int i = 0; i < this.workers.size(); i++)
             {
-                writer.write("Estrategia");
-                for (int i = 0; i < this.workers.size(); i++) {
-                    writer.write(String.format(",Hilo-%d-%s", i, this.workers.get(i).getWorkType().name()));
-                }
-                writer.write(",Supervisor\n\r");
+                writer.write(String.format(",Hilo-%d-%s", (i+1), this.workers.get(i).getWorkType().name()));
             }
-            else
+            writer.write(",Supervisor");
+            //VALUES
+            int index = 0;
+            do
             {
-                writer.write(strategy.name());
-                this.workers.forEach(it -> {
-                    try {
-                        writer.write("," + it.getLastRunTime());
+                Strategy strategy = this.strategies.get(index / runsPerStrategy);
+                writer.write("\n\r" + strategy.name());
+                writer.write("," + ((index % runsPerStrategy) + 1));
+                int finalIndex = index;
+                this.workers.forEach(it ->
+                {
+                    try
+                    {
+                        writer.write("," + it.getRunTimeAt(finalIndex));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
                 });
+                writer.write("," + this.times.get(finalIndex));
             }
+            while((index++) < (this.totalRuns-1));
+            return "\nSe ha generado un archivo \"cl-results.csv\" con los resultados.";
+
 
         } catch(IOException e)
         {
-            //System.out.println("")
+            return "\nAviso: archivo .csv con resultados no pudo ser generado.";
         }
     }
 

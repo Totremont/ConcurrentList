@@ -13,12 +13,15 @@ import java.util.Scanner;
 
 public class App
 {
+    //Scenario
     private static int threadCount = 4;
     private static int[] opShare = {75,25,0};  // ADD,REMOVE
     private static int thOpCount = 5;
     private static boolean verbose = false;
     private final static ArrayList<Strategy> strategies = new ArrayList<>();
     private static int runsPerStrategy = 3;
+
+
     private final static LinkedList list = new LinkedList();
     private final static Supervisor supervisor = new Supervisor(list);
     private final Scanner input = new Scanner(System.in);
