@@ -2,6 +2,7 @@ package utn.totremont;
 
 
 import utn.totremont.strategy.FineGrainedStrategy;
+import utn.totremont.strategy.NonBlockingStrategy;
 import utn.totremont.strategy.OptimisticSynchronizationStrategy;
 import utn.totremont.worker.AddWorker;
 import utn.totremont.worker.RemoveWorker;
@@ -12,12 +13,16 @@ import java.util.Scanner;
 
 public class App
 {
+    //Scenario
     private static int threadCount = 4;
     private static int[] opShare = {75,25,0};  // ADD,REMOVE
     private static int thOpCount = 5;
     private static boolean verbose = false;
-    private final static LinkedList list = new LinkedList();
     private final static ArrayList<Strategy> strategies = new ArrayList<>();
+    private static int runsPerStrategy = 3;
+
+
+    private final static LinkedList list = new LinkedList();
     private final static Supervisor supervisor = new Supervisor(list);
     private final Scanner input = new Scanner(System.in);
 
@@ -38,6 +43,7 @@ public class App
     {
         strategies.add(new FineGrainedStrategy());
         strategies.add(new OptimisticSynchronizationStrategy());
+        //strategies.add(new NonBlockingStrategy());
     }
 
     private void home() throws InterruptedException
@@ -59,6 +65,7 @@ public class App
                 int size = text.length();
                 text.delete(size - 2,size); //delete last ", ".
             }
+            text.append("\nCorridas por estrategia: ").append(runsPerStrategy);
             text.append("\n-----------\n");
             System.out.flush();
             System.out.println(text);
@@ -71,13 +78,13 @@ public class App
                     {
                         if(i < (threadCount * opShare[0] / 100))
                         {
-                            supervisor.supervise(new AddWorker(thOpCount,i,list,verbose));
+                            supervisor.supervise(new AddWorker(thOpCount,(i+1),list,verbose));
                         }
-                        else supervisor.supervise(new RemoveWorker(thOpCount,i,list,verbose));
+                        else supervisor.supervise(new RemoveWorker(thOpCount,(i+1),list,verbose));
                     }
-                    supervisor.setStrategies(strategies);
-                    Thread event = new Thread(supervisor::execute);
-                    event.start();
+                    supervisor.setStrategies(strategies,runsPerStrategy);
+                    supervisor.execute();
+                    // Will block and wait until execute has finished to request an input.
                     input.nextLine();
                     break;
                 case 2:

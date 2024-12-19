@@ -4,6 +4,7 @@ import utn.totremont.LinkedList;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.function.BiConsumer;
 
 // Function that each thread will run
@@ -15,6 +16,7 @@ public abstract class Worker implements Runnable
     protected final WorkType workType;
     protected BiConsumer<Worker,String> supervisor;
     protected final boolean verbose;
+    protected ArrayList<Double> times = new ArrayList<>();
 
     protected Worker(int operationCount, int id, LinkedList list, WorkType workType, boolean verbose)
     {
@@ -30,6 +32,18 @@ public abstract class Worker implements Runnable
         this.supervisor = supervisor;
     }
 
+    public double getRunTimeAt(int index)
+    {
+       if(index >= times.size()) throw new IndexOutOfBoundsException();
+       else return times.get(index);
+    }
+
+    public void cleanup(){this.times.clear();}
+
+    public WorkType getWorkType() {
+        return workType;
+    }
+
     // What the worker actually do. It receives an StringBuilder to append additional info (optional).
     protected abstract void action(StringBuilder result);
 
@@ -39,12 +53,13 @@ public abstract class Worker implements Runnable
         Instant beginning = Instant.now();
         StringBuilder result = new StringBuilder();
         this.action(result);
-        double total = Duration.between(beginning, Instant.now()).getNano() / 1e6;
-        result.append(String.format("*Hice %d operaciones %s en %1.3f milisegundos*", operations,workType.name(),total));
+        Double run = Duration.between(beginning, Instant.now()).getNano() / 1e6;
+        this.times.add(run);
+        result.append(String.format("*Hice %d operaciones %s en %1.3f milisegundos*", operations,workType.name(),run));
         if(supervisor != null) supervisor.accept(this,result.toString());
     }
 
-    protected enum WorkType
+    public enum WorkType
     {
         ADD,REMOVE
     }

@@ -27,8 +27,9 @@ public class OptimisticSynchronizationStrategy implements Strategy{
                 if (curr != null) curr.lock();
 
                 if (validate(pred, curr, HEAD)) {
-                    if (curr != null && curr.getKey() == key) return null;
-                    else {
+                    if (curr != null && curr.getKey() == key) return curr;
+                    else
+                    {
                         OptimisticSynchronizationNode node = new OptimisticSynchronizationNode(value, curr);
                         pred.setNext(node);
                         return node;
@@ -61,13 +62,15 @@ public class OptimisticSynchronizationStrategy implements Strategy{
                 pred.lock();
                 if (curr != null) curr.lock();
 
-                if (validate(pred, curr, HEAD)) {
+                if (validate(pred, curr, HEAD))
+                {
                     if (curr == null || curr.getKey() != key) return null;
 
                     pred.setNext(curr.getNext());
                     return curr;
                 }
-            } finally {
+            } finally
+            {
                 pred.unlock();
                 if (curr != null) curr.unlock();
             }
@@ -82,7 +85,7 @@ public class OptimisticSynchronizationStrategy implements Strategy{
 
     @Override
     public String name() {
-        return "Optimistic Synchronization strategy";
+        return "Optimist strategy";
     }
 
     @Override
@@ -95,7 +98,8 @@ public class OptimisticSynchronizationStrategy implements Strategy{
 
         OptimisticSynchronizationNode node =  (OptimisticSynchronizationNode) HEAD;
 
-        while(node.getKey() <= predv.getKey()){
+        while(node.getKey() <= predv.getKey())
+        {
             if(node == predv) return node.getNext() == currv;
 
             node = (OptimisticSynchronizationNode) node.getNext();
