@@ -70,7 +70,14 @@ public class NonBlockingStrategy implements Strategy {
 
     @Override
     public Boolean contains(Object value, Node HEAD) {
-        return null;
+        int key = value.hashCode();
+        NonBlockingNode curr = (NonBlockingNode) HEAD.getNext();
+
+        while (curr != null && curr.getKey() < key) {
+            curr = (NonBlockingNode) curr.getNext();
+        }
+
+        return curr != null && curr.getKey() == key && !curr.next.isMarked();
     }
 
     @Override

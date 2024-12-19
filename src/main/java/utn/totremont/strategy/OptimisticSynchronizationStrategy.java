@@ -80,8 +80,34 @@ public class OptimisticSynchronizationStrategy implements Strategy{
 
     @Override
     public Boolean contains(Object value, Node HEAD) {
-        return null;
+        int key = value.hashCode();
+
+        OptimisticSynchronizationNode pred = null;
+        OptimisticSynchronizationNode curr = null;
+
+        try {
+            pred = (OptimisticSynchronizationNode) HEAD;
+            curr = (OptimisticSynchronizationNode) pred.getNext();
+
+            while (curr != null && curr.getKey() < key) {
+                pred = curr;
+                curr = (OptimisticSynchronizationNode) curr.getNext();
+            }
+
+            pred.lock();
+            if (curr != null) curr.lock();
+
+            if (validate(pred, curr, HEAD)) {
+                return curr != null && curr.getKey() == key;
+            } else {
+                return false;
+            }
+        } finally {
+            if (pred != null) pred.unlock();
+            if (curr != null) curr.unlock();
+        }
     }
+
 
     @Override
     public String name() {

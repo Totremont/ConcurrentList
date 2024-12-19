@@ -56,9 +56,32 @@ public class FineGrainedStrategy implements Strategy
     }
 
     @Override
-    public Boolean contains(Object value, Node HEAD)
-    {
-        return null;
+    public Boolean contains(Object value, Node HEAD) {
+        int key = value.hashCode();
+        FineGrainedNode pred = null;
+        FineGrainedNode curr = null;
+
+        try {
+            pred = (FineGrainedNode) HEAD;
+            pred.lock();
+
+            curr = pred.getNext() != null ? (FineGrainedNode) pred.getNext() : null;
+            if (curr != null) {
+                curr.lock();
+                while (curr.getKey() < key) {
+                    pred.unlock();
+                    pred = curr;
+                    curr = curr.getNext() != null ? (FineGrainedNode) curr.getNext() : null;
+                    if (curr != null) curr.lock();
+                    else break;
+                }
+            }
+
+            return curr != null && curr.getKey() == key;
+        } finally {
+            if (pred != null) pred.unlock();
+            if (curr != null) curr.unlock();
+        }
     }
 
     @Override
