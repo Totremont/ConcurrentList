@@ -61,7 +61,7 @@ public abstract class Worker implements Runnable
 
     public enum WorkType
     {
-        ADD,REMOVE
+        ADD,REMOVE,CONTAINS
     }
 
     public int getId() {

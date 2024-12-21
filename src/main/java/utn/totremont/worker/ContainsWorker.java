@@ -4,20 +4,27 @@ import utn.totremont.LinkedList;
 
 public class ContainsWorker extends Worker
 {
-    private final int MAX = 21;
-
     public ContainsWorker(int operations, int id, LinkedList list,boolean verbose)
     {
-        super(operations, id, list,WorkType.ADD,verbose);
+        super(operations, id, list,WorkType.CONTAINS,verbose);
     }
 
     @Override
     protected void action(StringBuilder result)
     {
+        final int MAX = 21;
         for(int i = 0; i < this.operations; i++)
         {
             // Add numbers between 0 to max
-            this.list.contains((int) (Math.random() * MAX));
+            int value = (int) (Math.random() * MAX);
+            boolean contains = this.list.contains(value);
+            if(verbose)
+            {
+                if (contains) result.append("[VERDADERO] ");
+                else result.append("[FALSO] ");
+                result.append(String.format("Hice una operación %s con el valor: %d\n", workType.name(), value));
+            }
+
         }
     }
 }

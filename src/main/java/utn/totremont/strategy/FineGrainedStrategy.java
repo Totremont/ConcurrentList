@@ -58,12 +58,24 @@ public class FineGrainedStrategy implements Strategy
     @Override
     public Boolean contains(Object value, Node HEAD)
     {
-        return null;
+        int key = value.hashCode();
+        Pair<FineGrainedNode> nodes = null;
+        try
+        {
+            nodes = findPosition(HEAD,key);
+            return (nodes.hasCurr && nodes.getCurr().getKey() == key);
+        }
+        finally
+        {
+            assert nodes != null;
+            nodes.getPred().unlock();
+            if(nodes.hasCurr) nodes.getCurr().unlock();
+        }
     }
 
     @Override
     public String name() {
-        return "Fine grained strategy";
+        return "Fine-Grained Strategy";
     }
 
     @Override

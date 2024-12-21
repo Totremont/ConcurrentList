@@ -5,6 +5,7 @@ import utn.totremont.strategy.FineGrainedStrategy;
 import utn.totremont.strategy.NonBlockingStrategy;
 import utn.totremont.strategy.OptimisticSynchronizationStrategy;
 import utn.totremont.worker.AddWorker;
+import utn.totremont.worker.ContainsWorker;
 import utn.totremont.worker.RemoveWorker;
 import utn.totremont.strategy.Strategy;
 
@@ -14,8 +15,8 @@ import java.util.Scanner;
 public class App
 {
     //Scenario
-    private static int threadCount = 4;
-    private static int[] opShare = {75,25,0};  // ADD,REMOVE
+    private static int threadCount = 10;
+    private static int[] opShare = {60,30,10};  // ADD,REMOVE
     private static int thOpCount = 5;
     private static boolean verbose = false;
     private final static ArrayList<Strategy> strategies = new ArrayList<>();
@@ -30,7 +31,8 @@ public class App
     {
         try
         {
-            new App().home();
+            App game = new App();
+            game.home();
         }
         catch (Exception e)
         {
@@ -43,49 +45,20 @@ public class App
     {
         strategies.add(new FineGrainedStrategy());
         strategies.add(new OptimisticSynchronizationStrategy());
-        //strategies.add(new NonBlockingStrategy());
+        strategies.add(new NonBlockingStrategy());
     }
 
     private void home() throws InterruptedException
     {
-        final StringBuilder text = new StringBuilder();
         loop: while(true)
         {
-            text.setLength(0);
-            text.append("\n==== TP Programación Concurrente ====\n");
-            text.append("\n=== Escenario actual ===\n");
-            text.append(String.format("Hilos: %d\n", threadCount));
-            text.append(String.format("Operaciones por hilo: %d\n", thOpCount));
-            text.append(String.format("Proporción de hilos (ADD,REMOVE): (%d,%d)\n", opShare[0], opShare[1]));
-            text.append(String.format("¿Hilos verbosos?: %s\n", verbose ? "SI" : "NO"));
-            text.append("Estrategias: ");
-            for(Strategy strategy : strategies) text.append(strategy.name()).append(", ");
-            if(!strategies.isEmpty())
-            {
-                int size = text.length();
-                text.delete(size - 2,size); //delete last ", ".
-            }
-            text.append("\nCorridas por estrategia: ").append(runsPerStrategy);
-            text.append("\n-----------\n");
             System.out.flush();
-            System.out.println(text);
-
+            clearConsole();
+            showParameters();
             switch (getUserInput())
             {
                 case 1:
-                    supervisor.clear();
-                    for(int i = 0 ; i < threadCount; i++)
-                    {
-                        if(i < (threadCount * opShare[0] / 100))
-                        {
-                            supervisor.supervise(new AddWorker(thOpCount,(i+1),list,verbose));
-                        }
-                        else supervisor.supervise(new RemoveWorker(thOpCount,(i+1),list,verbose));
-                    }
-                    supervisor.setStrategies(strategies,runsPerStrategy);
-                    supervisor.execute();
-                    // Will block and wait until execute has finished to request an input.
-                    input.nextLine();
+                    begin();
                     break;
                 case 2:
                     changeParameters();
@@ -96,6 +69,28 @@ public class App
                     break loop;
             }
         }
+    }
+
+    private void showParameters()
+    {
+        final StringBuilder text = new StringBuilder();
+        text.append("\n==== TP Programación Concurrente ====\n");
+        text.append("\n=== Escenario actual ===\n");
+        text.append(String.format("Hilos: %d\n", threadCount));
+        text.append(String.format("Operaciones por hilo: %d\n", thOpCount));
+        text.append(String.format("Proporción de hilos (ADD,REMOVE,CONTAINS): (%d,%d,%d)\n", opShare[0], opShare[1],opShare[2]));
+        text.append(String.format("¿Hilos verbosos?: %s\n", verbose ? "SI" : "NO"));
+        text.append("Estrategias: ");
+        for(Strategy strategy : strategies) text.append(strategy.name()).append(", ");
+        if(!strategies.isEmpty())
+        {
+            int size = text.length();
+            text.delete(size - 2,size); //delete last ", ".
+        }
+        text.append("\nCorridas por estrategia: ").append(runsPerStrategy);
+        text.append("\n-----------\n");
+        System.out.print(text);
+
     }
 
     private int getUserInput()
@@ -114,47 +109,100 @@ public class App
         return option[0];
     }
 
+    private void begin()
+    {
+        supervisor.clear();
+        int[] workers =
+                {
+                        Math.round(threadCount * (opShare[0] / 100f)), // ADD
+                        0,  // REMOVE
+                        0, // CONTAINS
+                };
+        workers[1] = Math.round(threadCount * (opShare[1] / 100f)) + workers[0];
+        workers[2] = threadCount;
+        int innerIndex = 0;
+        //Create workers
+        for(int i = 0 ; i < threadCount; i++)
+        {
+            if(i < workers[innerIndex])
+            {
+                switch(innerIndex)
+                {
+                    case 0:
+                        supervisor.supervise(new AddWorker(thOpCount,(i+1),list,verbose));
+                        break;
+                    case 1:
+                        supervisor.supervise(new RemoveWorker(thOpCount,(i+1),list,verbose));
+                        break;
+                    default:
+                        supervisor.supervise(new ContainsWorker(thOpCount,(i+1),list,verbose));
+                        break;
+                }
+            } else
+            {
+                innerIndex++;
+                i--;    //Otherwise you will miss a worker
+            }
+        }
+        supervisor.setStrategies(strategies,runsPerStrategy);
+        supervisor.execute();
+
+        // Will block and wait until execute has finished to request an input.
+        input.nextLine();
+    }
+
     private void changeParameters()
     {
-        System.out.flush();
-        System.out.println("\n==== TP Programación Concurrente | Modificar ====\n");
+        clearConsole();
+        System.out.println("\n==== Modificar parámetros====\n");
         int[] option;
-
         do
         {
-            System.out.printf("\rOperaciones por hilo [Actual: %d | Max: 20]: ", thOpCount);
+            System.out.printf("Operaciones por hilo [Actual: %d | Max: 20]: ", thOpCount);
             option = getOrParseInput(true,input);
-        } while (option == null || option[0] < 1 || option[0] > 20);
+        }
+        while (option == null || option[0] < 1 || option[0] > 20);
         thOpCount = option[0];
 
-        System.out.printf("Proporción (ADD,REMOVE) [Actual: (%d,%d)]\n", opShare[0],opShare[1]);
+        System.out.printf("Proporción (ADD,REMOVE,CONTAINS) [Actual: (%d:%d:%d)]\n", opShare[0],opShare[1],opShare[2]);
         int[] values;
         do
         {
-            System.out.print("\rEscribir en formato <%,%> (ej: 25,75): ");
+            System.out.println("Tenga en cuenta que los valores deben sumar 100%");
+            System.out.println("Escribir en formato <%:%:%> (ej: 60:30:10): ");
             values = getOrParseInput(false,input);
 
-        } while (values == null || (values[0] + values[1]) != 100);
+        } while (values == null || (values[0] + values[1] + values[2]) != 100);
         opShare = values;
 
-        final int minThreads = values[0] < values[1] ? 100 / values[0] : 100 / values[1];
+        final int minThreads = 100 / min(values);
 
-        System.out.printf("Considere que necesita como mínimo %d hilo(s) para poder conseguir la proporción indicada.\n",minThreads);
+        System.out.printf("Necesita como mínimo %d hilo(s) para alcanzar la proporción indicada.\n",minThreads);
 
         do
         {
-            System.out.printf("\rHilos [Actual: %d | Max: 15]: ",threadCount);
+            System.out.printf("Hilos [Actual: %d | Max: 15]: ",threadCount);
             option = getOrParseInput(true,input);
-        } while (option == null || option[0] < 1 || option[0] > 15);
+        }
+        while (option == null || option[0] < 1 || option[0] > 15);
         threadCount = option[0];
 
-        System.out.printf("\r¿Los hilos son verbosos? [Actual: %s]\n",verbose ? "SI" : "NO");
+        System.out.printf("¿Los hilos son verbosos? [Actual: %s]\n",verbose ? "SI" : "NO");
         do
         {
-            System.out.print("\rEscribir 1 para SI, 0 para NO: ");
+            System.out.print("Escribir 1 para SI, 0 para NO: ");
             option = getOrParseInput(true,input);
-        } while (option == null || option[0] < 0 || option[0] > 1);
+        }
+        while (option == null || option[0] < 0 || option[0] > 1);
         verbose = option[0] == 1;
+
+        do
+        {
+            System.out.printf("Corridas por estrategia [Actual: %d | Max: 10]: ",runsPerStrategy);
+            option = getOrParseInput(true,input);
+        }
+        while (option == null || option[0] < 0 || option[0] > 10);
+        runsPerStrategy = option[0];
 
     }
 
@@ -167,9 +215,31 @@ public class App
             if (get) return new int[]{Integer.parseInt(line)};
             else
             {
-                String[] aux = line.split(",");
-                return new int[]{Integer.parseInt(aux[0]), Integer.parseInt(aux[1]) };
+                String[] aux = line.split(":");
+                return new int[]{Integer.parseInt(aux[0]), Integer.parseInt(aux[1]),Integer.parseInt(aux[2]) };
             }
         } catch(Exception e) {return null;}
+    }
+
+    private void clearConsole()
+    {
+        try {
+            String os = System.getProperty("os.name");
+            Runtime.getRuntime().exec(os.contains("Windows") ? "cls" : "/bin/sh clear");
+        }
+        //Silently catch exception
+        catch (Exception e)
+        {
+            //e.getMessage();
+        }
+    }
+
+    private int min(int[] values)   //3 values
+    {
+        if(values[0] < values[1])
+            if(values[0] < values[2]) return values[0];
+            else return values[2];
+        else if(values[1] < values[2]) return values[1];
+            else return values[2];
     }
 }
