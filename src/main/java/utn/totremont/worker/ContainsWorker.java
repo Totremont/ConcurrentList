@@ -4,9 +4,9 @@ import utn.totremont.LinkedList;
 
 public class ContainsWorker extends Worker
 {
-    public ContainsWorker(int operations, int id, LinkedList list,boolean verbose)
+    public ContainsWorker(int operations, int id, LinkedList list,boolean verbose, int maxRange)
     {
-        super(operations, id, list,WorkType.CONTAINS,verbose);
+        super(operations, id, list,WorkType.CONTAINS,verbose,maxRange);
     }
 
     @Override
@@ -16,7 +16,7 @@ public class ContainsWorker extends Worker
         for(int i = 0; i < this.operations; i++)
         {
             // Add numbers between 0 to max
-            int value = (int) (Math.random() * MAX);
+            int value = (int) (Math.random() * (maxRange+1));
             boolean contains = this.list.contains(value);
             if(verbose)
             {

@@ -1,5 +1,6 @@
 ### Custom ignore
 *.csv
+*.ipynb
 
 target/
 !.mvn/wrapper/maven-wrapper.jar

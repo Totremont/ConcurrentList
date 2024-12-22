@@ -17,14 +17,16 @@ public abstract class Worker implements Runnable
     protected BiConsumer<Worker,String> supervisor;
     protected final boolean verbose;
     protected ArrayList<Double> times = new ArrayList<>();
+    protected final int maxRange;
 
-    protected Worker(int operationCount, int id, LinkedList list, WorkType workType, boolean verbose)
+    protected Worker(int operationCount, int id, LinkedList list, WorkType workType, boolean verbose, int maxRange)
     {
         this.operations = operationCount;
         this.id = id;
         this.list = list;
         this.workType = workType;
         this.verbose = verbose;
+        this.maxRange = maxRange;
     }
 
     public void subscribe(BiConsumer<Worker,String> supervisor)

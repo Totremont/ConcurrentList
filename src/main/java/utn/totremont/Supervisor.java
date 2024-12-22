@@ -140,7 +140,8 @@ public class Supervisor
                     );
                 }
                 results.append(outputCSV()).append("\nPresionar tecla para continuar.");
-                System.out.println(results);
+                System.out.flush();
+                System.out.print(results);
                 notifyAll();    //Wakes App() up
             }
 

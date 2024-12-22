@@ -16,11 +16,12 @@ public class App
 {
     //Scenario
     private static int threadCount = 10;
-    private static int[] opShare = {60,30,10};  // ADD,REMOVE
-    private static int thOpCount = 5;
+    private static int[] opShare = {50,30,20};  // ADD,REMOVE
+    private static int thOpCount = 8;
     private static boolean verbose = false;
     private final static ArrayList<Strategy> strategies = new ArrayList<>();
-    private static int runsPerStrategy = 3;
+    private static int runsPerStrategy = 4;
+    private static int range = 25;
 
 
     private final static LinkedList list = new LinkedList();
@@ -88,6 +89,7 @@ public class App
             text.delete(size - 2,size); //delete last ", ".
         }
         text.append("\nCorridas por estrategia: ").append(runsPerStrategy);
+        text.append(String.format("\nRango de valores en lista: [0-%d]",range));
         text.append("\n-----------\n");
         System.out.print(text);
 
@@ -103,7 +105,7 @@ public class App
         int[] option;
         do
         {
-            System.out.print("\rEscriba el número: ");
+            System.out.print("Escriba el número: ");
             option = getOrParseInput(true,input);
         } while (option == null || option[0]  < 1 || option[0] > 3);
         return option[0];
@@ -129,13 +131,13 @@ public class App
                 switch(innerIndex)
                 {
                     case 0:
-                        supervisor.supervise(new AddWorker(thOpCount,(i+1),list,verbose));
+                        supervisor.supervise(new AddWorker(thOpCount,(i+1),list,verbose,range));
                         break;
                     case 1:
-                        supervisor.supervise(new RemoveWorker(thOpCount,(i+1),list,verbose));
+                        supervisor.supervise(new RemoveWorker(thOpCount,(i+1),list,verbose,range));
                         break;
                     default:
-                        supervisor.supervise(new ContainsWorker(thOpCount,(i+1),list,verbose));
+                        supervisor.supervise(new ContainsWorker(thOpCount,(i+1),list,verbose,range));
                         break;
                 }
             } else
@@ -169,7 +171,7 @@ public class App
         do
         {
             System.out.println("Tenga en cuenta que los valores deben sumar 100%");
-            System.out.println("Escribir en formato <%:%:%> (ej: 60:30:10): ");
+            System.out.print("Escribir en formato <%:%:%> (ej: 60:30:10): ");
             values = getOrParseInput(false,input);
 
         } while (values == null || (values[0] + values[1] + values[2]) != 100);
@@ -203,6 +205,17 @@ public class App
         }
         while (option == null || option[0] < 0 || option[0] > 10);
         runsPerStrategy = option[0];
+
+        do
+        {
+            System.out.printf("Rango de valores en lista [Actual: [0-%d] | Max: [0-40]]: \n",range);
+            System.out.println("Establece el rango de valores que los hilos pueden utilizar al realizar las operaciones en la lista.");
+            System.out.println("Un valor menor implica mayores colisiones entre operaciones, lo que aumenta el uso de exclusión mutua");
+            System.out.print("Ingrese el valor máximo: ");
+            option = getOrParseInput(true,input);
+        }
+        while (option == null || option[0] < 0 || option[0] > 40);
+        range = option[0];
 
     }
 
