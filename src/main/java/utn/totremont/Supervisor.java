@@ -68,7 +68,6 @@ public class Supervisor
             results.append("\n=== No hay nada para ejecutar. Adiós. ===\n");
             System.exit(0);
         }
-        //this.workers.forEach(Worker::cleanup);
         forward();
         //Blocks calling object (App) until execution ends
         try
@@ -86,15 +85,9 @@ public class Supervisor
         workersFinish = 0;
         int aux = runIndex / runsPerStrategy;
         Strategy strategy = this.strategies.get(aux);
-        if(aux == strategyIndex)
-        {
-            this.list.clear(); //Still on same strategy
-        }
-        else
-        {
-            strategyIndex = aux;
-            this.list.setStrategy(strategy);
-        }
+        this.list.setStrategy(strategy);
+        if(aux != strategyIndex) strategyIndex = aux;
+
         lastRunTime = Instant.now();
         results.append(String.format("\n=== Ejecutando %s en lista nueva. ===\n",strategy.name()));
         results.append(String.format("Corrida: %d/%d\n",(runIndex % runsPerStrategy)+1,runsPerStrategy));

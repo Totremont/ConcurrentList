@@ -16,11 +16,11 @@ public class App
 {
     //Scenario
     private static int threadCount = 10;
-    private static int[] opShare = {50,30,20};  // ADD,REMOVE
-    private static int thOpCount = 8;
+    private static int[] opShare = {40,30,30};  // ADD,REMOVE
+    private static int thOpCount = 10;
     private static boolean verbose = false;
     private final static ArrayList<Strategy> strategies = new ArrayList<>();
-    private static int runsPerStrategy = 4;
+    private static int runsPerStrategy = 5;
     private static int range = 25;
 
 
